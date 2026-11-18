@@ -229,6 +229,41 @@ list called `instrumentals` at the top level.
     any. If not specified, the tiles are drawn in a default order.
 
 
+## Docker
+
+The repository includes a Dockerfile and Docker Compose configuration. Put
+your Lyricsfile YAML and its matching MP3 in the local `songs` directory.
+For example:
+
+```text
+songs/
+  He'll Have to Go.lyricsfile.yaml
+  He'll Have to Go.mp3
+```
+
+Build the image once:
+
+```bash
+docker compose build
+```
+
+Generate the karaoke files:
+
+```bash
+docker compose run --rm cdgmaker "/data/He'll Have to Go.lyricsfile.yaml"
+```
+
+The `songs` directory is mounted at `/data` in the container. The generated
+ZIP/CDG and any other output files are written back to that host directory.
+The image includes FFmpeg for audio conversion. To see the command-line options:
+
+```bash
+docker compose run --rm cdgmaker --help
+```
+
+The Compose service is intended for one-off generation jobs, so use
+`docker compose run --rm` rather than `docker compose up -d`.
+
 ## Lyricsfile YAML support
 
 The generator also accepts the open [Lyricsfile 1.0](https://github.com/tranxuanthang/lyricsfile)
@@ -239,7 +274,7 @@ YAML format, including word-synchronized lyrics. Use the standard
 python -m cdgmaker song.lyricsfile.yaml
 ```
 
-The YAML document supplies the title, artist and synchronized lyric timings.
+The YAML document supplies the title, artist and synchronized lyric timings. The importer accepts the Lyricsfile 1.0 structure shown in the example, including metadata such as album, duration_ms and language; fields not used by CDG Maker are safely ignored. Each word's start_ms is used as its highlight start time.
 Place the matching audio file beside it using the same base name and an
 `.mp3` extension (for example, `song.mp3`). The bundled font is used by
 default. TOML configuration remains supported.

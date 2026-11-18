@@ -46,7 +46,7 @@ kbd{border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:va
 <div class="field"><label>Word</label><input id="wordText" type="text" readonly placeholder="Select a word"></div>
 <div class="row" style="margin-top:12px">
 <div class="field"><label for="startTime">Start (seconds)</label><input id="startTime" type="number" min="0" step=".01"></div>
-<div class="field"><label for="endTime">End (seconds, optional)</label><input id="endTime" type="number" min="0" step=".01"></div>
+
 </div>
 <div class="row" style="margin-top:12px"><button id="setStart">Use player time</button><button id="saveTime" class="secondary">Save timing</button></div>
 <p class="status">Select a word, play the song and press <kbd>Enter</kbd> when it starts. Use the time fields for fine adjustments. The next word's start time defines the previous word's end in the CDG format.</p>
@@ -100,10 +100,10 @@ function render(){
  });
  updateProgress();
 }
-function select(li,wi){selected={li,wi};const w=lines[li].words[wi];$('wordText').value=w.text;$('startTime').value=w.start===null?'':w.start.toFixed(2);$('endTime').value=w.end===undefined?'':w.end.toFixed(2);render()}
+function select(li,wi){selected={li,wi};const w=lines[li].words[wi];$('wordText').value=w.text;$('startTime').value=w.start===null?'':w.start.toFixed(2);render()}
 function currentWord(){return selected?lines[selected.li].words[selected.wi]:null}
 function stamp(){const w=currentWord();if(!w)return;w.start=Number(audio.currentTime.toFixed(2));$('startTime').value=w.start.toFixed(2);save();nextUnstamped(false)}
-function save(){const w=currentWord();if(!w)return;const s=$('startTime').value,e=$('endTime').value;w.start=s===''?null:Number(s);w.end=e===''?undefined:Number(e);render();select(selected.li,selected.wi)}
+function save(){const w=currentWord();if(!w)return;const s=$('startTime').value;w.start=s===''?null:Number(s);render();select(selected.li,selected.wi)}
 function nextUnstamped(move=true){let flat=[];lines.forEach((l,li)=>l.words.forEach((w,wi)=>flat.push({li,wi,w})));let at=selected?flat.findIndex(x=>x.li===selected.li&&x.wi===selected.wi):-1;let next=flat.slice(at+1).find(x=>x.w.start===null);if(!next&&move)next=flat.find(x=>x.w.start===null);if(next){select(next.li,next.wi);if(audio.duration&&next.w.start!==null)audio.currentTime=next.w.start}}
 function updateProgress(){let total=lines.reduce((n,l)=>n+l.words.length,0),done=lines.reduce((n,l)=>n+l.words.filter(w=>w.start!==null).length,0);$('progress').textContent=total?done+' of '+total+' words timed ('+Math.round(done/total*100)+'%)':'No lyrics loaded.'}
 function exportToml(){
@@ -121,7 +121,7 @@ $('play').onclick=()=>audio.paused?audio.play():audio.pause();
 $('stamp').onclick=stamp;$('next').onclick=()=>nextUnstamped();
 $('setStart').onclick=()=>{if(!currentWord())return;$('startTime').value=audio.currentTime.toFixed(2);save()};
 $('saveTime').onclick=save;
-$('export').onclick=()=>{if(!lines.length)return alert('Import an LRC file first.');download($('configName').value||'song.toml',exportToml(),'text/plain')};
+$('export').onclick=()=>{if(!lines.length)return alert('Import an LRC file first.');if(lines.some(l=>l.words.some(w=>w.start===null)))return alert('Time every word before exporting. Use Next unstamped to find the remaining words.');download($('configName').value||'song.toml',exportToml(),'text/plain')};
 $('exportLrc').onclick=()=>{if(!lines.length)return;let out='';lines.forEach(l=>{out+='['+timeFmt(l.start||0)+']'+l.words.map(w=>(w.start===null?'':'<'+timeFmt(w.start)+'>')+w.text).join(' ')+'\n'});download('timed.lrc',out,'text/plain')};
 document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;if(e.code==='Enter'){e.preventDefault();stamp()}if(e.code==='ArrowRight'){e.preventDefault();nextUnstamped()}if(e.code==='Space'){e.preventDefault();audio.paused?audio.play():audio.pause()}});
 })();

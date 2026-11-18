@@ -1,0 +1,11 @@
+services:
+  cdgmaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: markwasley/cdgmaker:local
+    container_name: cdgmaker
+    volumes:
+      - ./songs:/data
+    working_dir: /app
+    restart: "no"

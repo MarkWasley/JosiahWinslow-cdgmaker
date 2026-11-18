@@ -126,7 +126,7 @@ def settings_from_lyricsfile(path: str | Path) -> Settings:
     if not text_lines or not sync:
         raise ValueError("Lyricsfile contains no synchronized lyric segments")
 
-    audio_file = source.with_suffix(".mp3").name
+    audio_file = (source.name[:-len(".lyricsfile.yaml")] + ".mp3"\n                  if source.name.lower().endswith(".lyricsfile.yaml")\n                  else source.with_suffix(".mp3").name)
     font = Path("fonts/DMSans-VariableFont_opsz,wght.ttf")
     return Settings(
         title=title,

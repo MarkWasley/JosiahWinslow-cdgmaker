@@ -1,0 +1,30 @@
+version: '1.0'
+
+metadata:
+  title: 'Morning Light'
+  artist: 'Example Artist'
+  language: 'en'
+
+lines:
+  - text: 'Morning light through the window'
+    start_ms: 12000
+    end_ms: 15500
+    words:
+      - text: 'Morning '
+        start_ms: 12000
+        end_ms: 12800
+      - text: 'light '
+        start_ms: 12800
+        end_ms: 13400
+      - text: 'through '
+        start_ms: 13400
+        end_ms: 14100
+      - text: 'the '
+        start_ms: 14100
+        end_ms: 14500
+      - text: 'window'
+        start_ms: 14500
+        end_ms: 15500
+
+plain: |
+  Morning light through the window

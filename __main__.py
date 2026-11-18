@@ -19,6 +19,7 @@ from pydub import AudioSegment
 from . import fonts, images, transitions  # type: ignore
 from .cdg import *
 from .config import *
+from .lyricsfile import settings_from_lyricsfile
 from .pack import *
 from .render import *
 from .utils import *
@@ -396,11 +397,13 @@ class KaraokeComposer:
     ) -> Self:
         converter = Converter(prefer_attrib_converters=True)
         relative_dir = Path(file).parent
-        with open(file, "rb") as stream:
-            return cls(
-                converter.structure(tomllib.load(stream), Settings),
-                relative_dir=relative_dir,
-            )
+        config_path = Path(file)
+        if config_path.name.lower().endswith(".lyricsfile.yaml") or config_path.suffix.lower() in {".yaml", ".yml"}:
+            config = settings_from_lyricsfile(config_path)
+        else:
+            with config_path.open("rb") as stream:
+                config = converter.structure(tomllib.load(stream), Settings)
+        return cls(config, relative_dir=relative_dir)
 
     @classmethod
     def from_string(
@@ -2293,7 +2296,7 @@ if __name__ == "__main__":
         formatter_class=RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "config", help=".toml config file to create CDG files with",
+        "config", help="TOML config or .lyricsfile.yaml lyrics file to create CDG files with",
         metavar="FILE",
         type=str,
     )

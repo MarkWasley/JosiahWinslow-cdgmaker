@@ -229,6 +229,32 @@ list called `instrumentals` at the top level.
     any. If not specified, the tiles are drawn in a default order.
 
 
+## Lyricsfile YAML support
+
+The generator also accepts the open [Lyricsfile 1.0](https://github.com/tranxuanthang/lyricsfile)
+YAML format, including word-synchronized lyrics. Use the standard
+`.lyricsfile.yaml` extension:
+
+```bash
+python -m cdgmaker song.lyricsfile.yaml
+```
+
+The YAML document supplies the title, artist and synchronized lyric timings.
+Place the matching audio file beside it using the same base name and an
+`.mp3` extension (for example, `song.mp3`). The bundled font is used by
+default. TOML configuration remains supported.
+
+Word-level `start_ms` values are converted from milliseconds to CDG Maker's
+centisecond timing. A line without a `words` array is treated as one
+line-synchronized highlight segment. Plain-only and instrumental Lyricsfiles
+cannot produce a timed CDG and are rejected. Lyricsfile's optional end times,
+metadata beyond title and artist, and overlapping-line rendering are not
+currently represented by the CDG Maker renderer.
+
+The browser editor can import `.lyricsfile.yaml` files and export a
+Lyricsfile YAML document after word timing. Its YAML support loads js-yaml
+from jsDelivr, so an internet connection is needed for that feature.
+
 ## Word timing editor
 
 This fork includes a browser-based LRC importer and word timing editor at

@@ -1,0 +1,17 @@
+.git
+.github
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+.env
+.DS_Store
+
+# Input and generated media stay on the host, mounted at /data.
+songs
+output
+*.zip
+*.cdg
+*.mp4
+*.ass

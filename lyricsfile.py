@@ -74,7 +74,10 @@ def settings_from_lyricsfile(path: str | Path) -> Settings:
     artist = metadata.get("artist")
     if not isinstance(title, str) or not isinstance(artist, str):
         raise ValueError("metadata.title and metadata.artist must be strings")
-    if metadata.get("instrumental", False):
+    instrumental = metadata.get("instrumental", False)
+    if not isinstance(instrumental, bool):
+        raise ValueError("metadata.instrumental must be a boolean")
+    if instrumental:
         raise ValueError("Instrumental Lyricsfiles do not contain lyrics to render")
 
     lines = data.get("lines")
@@ -125,6 +128,8 @@ def settings_from_lyricsfile(path: str | Path) -> Settings:
 
     if not text_lines or not sync:
         raise ValueError("Lyricsfile contains no synchronized lyric segments")
+    if any(current < previous for previous, current in zip(sync, sync[1:])):
+        raise ValueError("CDG Maker requires lyric word start times to be in chronological order")
 
     audio_file = (
         source.name[:-len(".lyricsfile.yaml")] + ".mp3"

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CDG Maker · Word Timing Editor</title>
+<style>
+:root{color-scheme:dark;--bg:#101216;--panel:#191d24;--panel2:#202630;--line:#303845;--text:#edf1f7;--muted:#9aa6b5;--accent:#ffbf00;--green:#77d6a1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}
+header{padding:22px clamp(16px,4vw,48px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px}h1{font-size:22px;margin:0}header p{margin:3px 0 0;color:var(--muted);font-size:13px}
+main{max-width:1280px;margin:auto;padding:24px clamp(14px,3vw,32px);display:grid;gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+h2{font-size:16px;margin:0 0 14px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.field{display:grid;gap:5px;flex:1;min-width:180px}label{font-size:12px;color:var(--muted)}input[type=text],input[type=number],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--text);padding:9px;font:inherit}
+input[type=file]{max-width:100%;color:var(--muted)}button{background:var(--accent);color:#181818;border:0;border-radius:7px;padding:9px 13px;font-weight:700;cursor:pointer}button.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--text)}button:disabled{opacity:.4;cursor:not-allowed}
+audio{width:100%;margin-top:14px}.transport{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:10px}.clock{font-variant-numeric:tabular-nums;font-size:20px;font-weight:700;min-width:100px}
+#lyrics{display:grid;gap:10px}.lyric-line{padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:9px}.line-head{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-bottom:7px}.words{display:flex;gap:5px;flex-wrap:wrap}.word{padding:5px 7px;border:1px solid transparent;border-radius:5px;cursor:pointer}.word.selected{border-color:var(--accent);background:#4a3b08}.word.stamped:after{content:" ✓";color:var(--green);font-size:10px}.word small{display:block;color:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}
+#empty{color:var(--muted);text-align:center;padding:28px}.status{color:var(--muted);font-size:13px}.status strong{color:var(--green)}
+kbd{border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--panel2)}
+@media(min-width:900px){.workspace{display:grid;grid-template-columns:1fr 310px;gap:18px;align-items:start}.sticky{position:sticky;top:16px}}
+</style>
+</head>
+<body>
+<header><div><h1>CDG Maker <span style="color:var(--accent)">/</span> Word Timing</h1><p>Import LRC, listen, timestamp every word and export a CDG Maker TOML config.</p></div><a href="https://github.com/MarkWasley/JosiahWinslow-cdgmaker" style="color:var(--accent)">GitHub ↗</a></header>
+<main>
+<section class="panel">
+<h2>1. Song files</h2>
+<div class="row">
+<div class="field"><label for="lrcFile">LRC lyrics file</label><input id="lrcFile" type="file" accept=".lrc,.txt"></div>
+<div class="field"><label for="audioFile">Audio file (local preview)</label><input id="audioFile" type="file" accept="audio/*"></div>
+</div>
+<div class="row" style="margin-top:12px">
+<div class="field"><label for="title">Song title</label><input id="title" type="text" placeholder="Song title"></div>
+<div class="field"><label for="artist">Artist</label><input id="artist" type="text" placeholder="Artist"></div>
+<div class="field"><label for="audioPath">Audio filename/path for TOML</label><input id="audioPath" type="text" value="song.mp3"></div>
+</div>
+<audio id="audio" controls></audio>
+<div class="transport"><button id="play" class="secondary">Play / pause</button><button id="stamp">Stamp selected word <kbd>Enter</kbd></button><button id="next" class="secondary">Next unstamped <kbd>→</kbd></button><span class="clock" id="clock">00:00.00</span><span class="status" id="status">Load an LRC file to begin.</span></div>
+</section>
+<div class="workspace">
+<section class="panel">
+<h2>2. Lyrics and word timings</h2>
+<div id="empty">Choose an LRC file above. Standard line-timed LRC sets the first word of each line; time the remaining words while listening. Enhanced LRC word timestamps are imported automatically.</div>
+<div id="lyrics"></div>
+</section>
+<aside class="panel sticky">
+<h2>3. Selected word</h2>
+<div class="field"><label>Word</label><input id="wordText" type="text" readonly placeholder="Select a word"></div>
+<div class="row" style="margin-top:12px">
+<div class="field"><label for="startTime">Start (seconds)</label><input id="startTime" type="number" min="0" step=".01"></div>
+<div class="field"><label for="endTime">End (seconds, optional)</label><input id="endTime" type="number" min="0" step=".01"></div>
+</div>
+<div class="row" style="margin-top:12px"><button id="setStart">Use player time</button><button id="saveTime" class="secondary">Save timing</button></div>
+<p class="status">Select a word, play the song and press <kbd>Enter</kbd> when it starts. Use the time fields for fine adjustments. The next word's start time defines the previous word's end in the CDG format.</p>
+<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+<h2>4. Export</h2>
+<div class="field"><label for="configName">Output TOML filename</label><input id="configName" type="text" value="song.toml"></div>
+<div class="row" style="margin-top:12px"><button id="export">Download TOML config</button><button id="exportLrc" class="secondary">Download timed LRC</button></div>
+<p class="status" id="progress">No lyrics loaded.</p>
+</aside>
+</div>
+</main>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+let lines=[],selected=null,audioUrl=null;
+const audio=$('audio');
+function timeFmt(s){if(!Number.isFinite(s))return '--:--.--';let m=Math.floor(s/60),v=(s%60).toFixed(2).padStart(5,'0');return String(m).padStart(2,'0')+':'+v}
+function parseStamp(s){let m=s.match(/^(\d+):(\d{2})(?:[.:](\d{1,3}))?$/);if(!m)return null;let frac=(m[3]||'0');return Number(m[1])*60+Number(m[2])+Number('0.'+frac)}
+function parseLrc(text){
+ const out=[];let title='',artist='',offset=0;
+ text.split(/\r?\n/).forEach(raw=>{
+  let line=raw.trim();if(!line)return;
+  let meta=line.match(/^\[(ti|ar|offset):([^\]]*)\]/i);if(meta){if(meta[1].toLowerCase()==='ti')title=meta[2];if(meta[1].toLowerCase()==='ar')artist=meta[2];if(meta[1].toLowerCase()==='offset')offset=Number(meta[2]||0)/1000;return}
+  const stamps=[...line.matchAll(/\[(\d{1,2}:\d{2}(?:[.:]\d{1,3})?)\]/g)];
+  if(!stamps.length)return;
+  let body=line.replace(/\[\d{1,2}:\d{2}(?:[.:]\d{1,3})?\]/g,'').trim();
+  stamps.forEach(st=>{
+   const lineStart=parseStamp(st[1])+offset;
+   const words=[];let active=null,last=0;const tag=/<(\d{1,2}:\d{2}(?:[.:]\d{1,3})?)>/g;let match;
+   while((match=tag.exec(body))!==null){const chunk=body.slice(last,match.index);chunk.split(/\s+/).filter(Boolean).forEach(w=>words.push({text:w,start:active}));active=parseStamp(match[1])+offset;last=tag.lastIndex}
+   body.slice(last).split(/\s+/).filter(Boolean).forEach(w=>words.push({text:w,start:active}));
+   if(!words.length)return;
+   if(words.every(w=>w.start===null))words[0].start=lineStart;
+   out.push({start:lineStart,words:words.map(w=>({text:w.text,start:w.start===null?null:Math.max(0,w.start)}))});
+  });
+ });
+ return {lines:out,title,artist};
+}
+function render(){
+ $('empty').style.display=lines.length?'none':'block';$('lyrics').innerHTML='';
+ lines.forEach((line,li)=>{
+  const wrap=document.createElement('div');wrap.className='lyric-line';
+  const head=document.createElement('div');head.className='line-head';head.innerHTML='<span>LINE '+(li+1)+'</span><span>'+timeFmt(line.start||0)+'</span>';wrap.appendChild(head);
+  const words=document.createElement('div');words.className='words';
+  line.words.forEach((w,wi)=>{
+   const b=document.createElement('button');b.type='button';b.className='word'+(w.start!==null?' stamped':'')+(selected&&selected.li===li&&selected.wi===wi?' selected':'');b.classList.add('secondary');b.innerHTML='';
+   const label=document.createElement('span');label.textContent=w.text;b.appendChild(label);
+   const small=document.createElement('small');small.textContent=w.start===null?'not timed':timeFmt(w.start);b.appendChild(small);
+   b.addEventListener('click',()=>select(li,wi));words.appendChild(b);
+  });wrap.appendChild(words);$('lyrics').appendChild(wrap);
+ });
+ updateProgress();
+}
+function select(li,wi){selected={li,wi};const w=lines[li].words[wi];$('wordText').value=w.text;$('startTime').value=w.start===null?'':w.start.toFixed(2);$('endTime').value=w.end===undefined?'':w.end.toFixed(2);render()}
+function currentWord(){return selected?lines[selected.li].words[selected.wi]:null}
+function stamp(){const w=currentWord();if(!w)return;w.start=Number(audio.currentTime.toFixed(2));$('startTime').value=w.start.toFixed(2);save();nextUnstamped(false)}
+function save(){const w=currentWord();if(!w)return;const s=$('startTime').value,e=$('endTime').value;w.start=s===''?null:Number(s);w.end=e===''?undefined:Number(e);render();select(selected.li,selected.wi)}
+function nextUnstamped(move=true){let flat=[];lines.forEach((l,li)=>l.words.forEach((w,wi)=>flat.push({li,wi,w})));let at=selected?flat.findIndex(x=>x.li===selected.li&&x.wi===selected.wi):-1;let next=flat.slice(at+1).find(x=>x.w.start===null);if(!next&&move)next=flat.find(x=>x.w.start===null);if(next){select(next.li,next.wi);if(audio.duration&&next.w.start!==null)audio.currentTime=next.w.start}}
+function updateProgress(){let total=lines.reduce((n,l)=>n+l.words.length,0),done=lines.reduce((n,l)=>n+l.words.filter(w=>w.start!==null).length,0);$('progress').textContent=total?done+' of '+total+' words timed ('+Math.round(done/total*100)+'%)':'No lyrics loaded.'}
+function exportToml(){
+ const title=$('title').value||'Untitled',artist=$('artist').value||'Unknown artist',file=$('audioPath').value||'song.mp3';
+ const q=s=>'"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n')+'"';
+ const lyricText=lines.map(l=>l.words.map(w=>w.text).join(' ')).join('\n');
+ const sync=[];lines.forEach(l=>l.words.forEach(w=>sync.push(Math.max(0,Math.round((w.start===null?0:w.start)*100)))));
+ return 'title = '+q(title)+'\nartist = '+q(artist)+'\nfile = '+q(file)+'\nfont = "fonts/DMSans-VariableFont_opsz,wght.ttf"\nfont_size = 18\nstroke_width = 0\nclear_mode = "delayed"\n\n[[singers]]\n\n[[lyrics]]\nlines_per_page = 4\nline_tile_height = 2\nrow = 1\ntext = '+q(lyricText)+'\nsync = ['+sync.join(', ')+']\n';
+}
+function download(name,content,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('lrcFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const parsed=parseLrc(await f.text());lines=parsed.lines;selected=null;$('title').value=$('title').value||parsed.title;$('artist').value=$('artist').value||parsed.artist;$('status').innerHTML='<strong>'+lines.length+' lyric lines imported.</strong> Standard LRC line starts imported; enhanced word tags retained.';render();if(lines.length)select(0,0)});
+$('audioFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(f);audio.src=audioUrl;if(!$('audioPath').value||$('audioPath').value==='song.mp3')$('audioPath').value=f.name});
+audio.addEventListener('timeupdate',()=>$('clock').textContent=timeFmt(audio.currentTime));
+$('play').onclick=()=>audio.paused?audio.play():audio.pause();
+$('stamp').onclick=stamp;$('next').onclick=()=>nextUnstamped();
+$('setStart').onclick=()=>{if(!currentWord())return;$('startTime').value=audio.currentTime.toFixed(2);save()};
+$('saveTime').onclick=save;
+$('export').onclick=()=>{if(!lines.length)return alert('Import an LRC file first.');download($('configName').value||'song.toml',exportToml(),'text/plain')};
+$('exportLrc').onclick=()=>{if(!lines.length)return;let out='';lines.forEach(l=>{out+='['+timeFmt(l.start||0)+']'+l.words.map(w=>(w.start===null?'':'<'+timeFmt(w.start)+'>')+w.text).join(' ')+'\n'});download('timed.lrc',out,'text/plain')};
+document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;if(e.code==='Enter'){e.preventDefault();stamp()}if(e.code==='ArrowRight'){e.preventDefault();nextUnstamped()}if(e.code==='Space'){e.preventDefault();audio.paused?audio.play():audio.pause()}});
+})();
+</script>
+</body></html>
